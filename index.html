@@ -161,6 +161,44 @@
     .rules-count { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; border-radius: 999px; color: white; background: var(--brand); font-weight: 900; }
     .rules-body { padding: 18px 22px 22px; }
     .review-pill { display: inline-flex; border-radius: 999px; padding: 5px 9px; color: var(--warning); background: var(--warning-soft); font-size: .72rem; font-weight: 850; white-space: nowrap; }
+    .rule-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      width: 100%;
+      min-width: 230px;
+      padding: 7px 8px;
+      border: 0;
+      border-radius: 9px;
+      color: inherit;
+      background: transparent;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .rule-toggle:hover, .rule-toggle:focus-visible { background: var(--brand-soft); outline: none; }
+    .rule-toggle-hint { display: block; margin-top: 3px; color: var(--brand-dark); font-size: .72rem; font-weight: 750; }
+    .rule-chevron { color: var(--brand-dark); font-size: 1.2rem; line-height: 1; transition: transform .18s ease; }
+    .rule-toggle[aria-expanded="true"] .rule-chevron { transform: rotate(180deg); }
+    .rule-detail-row td { padding: 0; background: #f7fafb; border-bottom: 1px solid var(--line); }
+    .rule-detail-panel { padding: 20px 22px 22px; border-left: 4px solid var(--brand); }
+    .rule-detail-grid { display: grid; grid-template-columns: minmax(320px, .9fr) minmax(380px, 1.1fr); gap: 24px; }
+    .detail-kicker { margin: 0 0 9px; color: var(--muted); font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .condition-tree { display: grid; gap: 9px; }
+    .condition-group { padding: 12px; border: 1px solid #cbdcdf; border-radius: 11px; background: white; }
+    .condition-group .condition-group { margin-top: 8px; background: #f7fbfa; }
+    .logic-label { display: inline-flex; margin-bottom: 8px; padding: 3px 7px; border-radius: 6px; color: white; background: var(--navy); font-size: .68rem; font-weight: 900; letter-spacing: .06em; }
+    .condition-children { display: grid; gap: 7px; }
+    .condition-leaf { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; padding: 9px 10px; border-radius: 8px; background: #edf4f3; font-size: .82rem; }
+    .condition-leaf code { color: var(--navy); font-weight: 800; overflow-wrap: anywhere; }
+    .condition-leaf .operator { padding: 2px 6px; border-radius: 5px; color: var(--brand-dark); background: white; font-size: .7rem; font-weight: 900; text-transform: uppercase; }
+    .condition-leaf strong { overflow-wrap: anywhere; }
+    .then-row { display: flex; align-items: center; gap: 9px; margin-top: 12px; padding: 11px 12px; border: 1px solid #cbdcdf; border-radius: 10px; background: white; }
+    .then-label { color: var(--muted); font-size: .7rem; font-weight: 900; letter-spacing: .08em; }
+    .field-list { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 16px; }
+    .field-chip { padding: 5px 8px; border: 1px solid #ccd9e1; border-radius: 999px; color: #29465d; background: white; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .72rem; }
+    .json-block { max-height: 290px; margin: 0; padding: 14px; overflow: auto; border-radius: 10px; color: #dbeaf0; background: #183044; font-size: .76rem; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
 
     .card {
       background: var(--surface);
@@ -344,6 +382,7 @@
     @media (max-width: 980px) {
       .form-grid, .constraint-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .rule-detail-grid { grid-template-columns: 1fr; }
       .title-row { flex-direction: column; }
     }
 
@@ -557,15 +596,98 @@
     };
 
     const RULE_CATALOG = [
-      { id: "R001", priority: 10, name: "Developmental readiness gate", when: "Solids have not started, developmental readiness is not confirmed, or the patient is currently ill." },
-      { id: "R006", priority: 15, name: "Confirmed FPIES trigger exclusion", when: "An active, confirmed FPIES allergy record exists for the food." },
-      { id: "R002", priority: 20, name: "Confirmed active food-allergy exclusion", when: "An active, confirmed allergy record exists for the food." },
-      { id: "R008", priority: 25, name: "High-risk peanut pathway", when: "Peanut is unintroduced and severe eczema or an active egg-allergy pathway is recorded." },
-      { id: "R003", priority: 30, name: "Unresolved reaction referral", when: "A reaction or medical avoidance is recorded and has not been cleared as unrelated." },
-      { id: "R007", priority: 40, name: "Required dietary-constraint filter", when: "The food conflicts with an active household dietary requirement." },
-      { id: "R009", priority: 50, name: "Incomplete profile guard", when: "Food history is unknown, current status needs clarification, or required product certification is unverified." },
-      { id: "R004", priority: 60, name: "Maintain tolerated food in rotation", when: "The food is regularly tolerated and no higher-priority rule matched." },
-      { id: "R005", priority: 70, name: "New-food eligibility", when: "The food is explicitly never introduced and passes all higher-priority filters." }
+      {
+        id: "R001", priority: 10, name: "Developmental readiness gate",
+        when: "Solids have not started, developmental readiness is not confirmed, or the patient is currently ill.",
+        condition: { any: [
+          { field: "patient.solids_started", op: "eq", value: 0 },
+          { field: "patient.developmentally_ready", op: "neq", value: 1 },
+          { field: "patient.currently_ill", op: "eq", value: 1 }
+        ] }
+      },
+      {
+        id: "R006", priority: 15, name: "Confirmed FPIES trigger exclusion",
+        when: "An active, confirmed FPIES allergy record exists for the food.",
+        condition: { all: [
+          { field: "patient_allergy.clinical_status", op: "eq", value: "active" },
+          { field: "patient_allergy.verification_status", op: "eq", value: "confirmed" },
+          { field: "patient_allergy.mechanism", op: "eq", value: "fpies" }
+        ] }
+      },
+      {
+        id: "R002", priority: 20, name: "Confirmed active food-allergy exclusion",
+        when: "An active, confirmed allergy record exists for the food.",
+        condition: { all: [
+          { field: "patient_allergy.clinical_status", op: "eq", value: "active" },
+          { field: "patient_allergy.verification_status", op: "eq", value: "confirmed" }
+        ] }
+      },
+      {
+        id: "R008", priority: 25, name: "High-risk peanut pathway",
+        when: "Peanut is unintroduced and severe eczema or an active egg-allergy pathway is recorded.",
+        condition: { all: [
+          { field: "food.food_id", op: "eq", value: "FOOD_PEANUT" },
+          { field: "patient_food_status.status", op: "eq", value: "never_introduced" },
+          { any: [
+            { field: "patient.eczema_severity", op: "eq", value: "severe" },
+            { all: [
+              { field: "patient_allergy.food_id", op: "eq", value: "FOOD_EGG" },
+              { field: "patient_allergy.clinical_status", op: "eq", value: "active" },
+              { field: "patient_allergy.verification_status", op: "in", value: ["provisional", "differential", "confirmed"] }
+            ] }
+          ] }
+        ] }
+      },
+      {
+        id: "R003", priority: 30, name: "Unresolved reaction referral",
+        when: "A reaction or medical avoidance is recorded and has not been cleared as unrelated.",
+        condition: { any: [
+          { field: "patient_food_status.status", op: "in", value: ["reaction_reported", "avoided_medical"] },
+          { all: [
+            { field: "reaction_event.exists", op: "eq", value: true },
+            { field: "reaction_event.clinician_review_status", op: "neq", value: "unrelated" }
+          ] }
+        ] }
+      },
+      {
+        id: "R007", priority: 40, name: "Required dietary-constraint filter",
+        when: "The food conflicts with an active household dietary requirement.",
+        condition: { all: [
+          { field: "dietary_constraint.active", op: "eq", value: 1 },
+          { field: "dietary_constraint.required_or_preferred", op: "eq", value: "required" },
+          { field: "dietary_constraint.conflict", op: "eq", value: true }
+        ] }
+      },
+      {
+        id: "R009", priority: 50, name: "Incomplete profile guard",
+        when: "Food history is unknown, current status needs clarification, or required product certification is unverified.",
+        condition: { any: [
+          { field: "patient_food_status.status", op: "in", value: ["unknown", "previously_tolerated_not_recent", "avoided_preference"] },
+          { field: "patient_food_status.exists", op: "eq", value: false },
+          { field: "dietary_constraint.certification_unverified", op: "eq", value: true }
+        ] }
+      },
+      {
+        id: "R004", priority: 60, name: "Maintain tolerated food in rotation",
+        when: "The food is regularly tolerated and no higher-priority rule matched.",
+        condition: { all: [
+          { field: "patient_food_status.status", op: "eq", value: "tolerated_regularly" },
+          { field: "engine.higher_priority_rule_match", op: "eq", value: false }
+        ] }
+      },
+      {
+        id: "R005", priority: 70, name: "New-food eligibility",
+        when: "The food is explicitly never introduced and passes all higher-priority filters.",
+        condition: { all: [
+          { field: "patient.solids_started", op: "eq", value: 1 },
+          { field: "patient.developmentally_ready", op: "eq", value: 1 },
+          { field: "patient.currently_ill", op: "eq", value: 0 },
+          { field: "patient_food_status.status", op: "eq", value: "never_introduced" },
+          { field: "patient_allergy.active_confirmed", op: "eq", value: false },
+          { field: "reaction_event.unresolved", op: "eq", value: false },
+          { field: "dietary_constraint.conflict", op: "eq", value: false }
+        ] }
+      }
     ];
 
     const DIET_OPTIONS = [
@@ -706,19 +828,67 @@
       ).join("");
     }
 
+    function conditionFields(node, fields = new Set()) {
+      if (node.field) fields.add(node.field);
+      ["all", "any"].forEach(key => (node[key] || []).forEach(child => conditionFields(child, fields)));
+      return [...fields];
+    }
+
+    function formatConditionValue(value) {
+      return JSON.stringify(value);
+    }
+
+    function renderConditionNode(node) {
+      const groupKey = node.all ? "all" : node.any ? "any" : null;
+      if (groupKey) {
+        return `<div class="condition-group">
+          <div class="logic-label">${groupKey.toUpperCase()} OF</div>
+          <div class="condition-children">${node[groupKey].map(renderConditionNode).join("")}</div>
+        </div>`;
+      }
+      return `<div class="condition-leaf">
+        <code>${escapeHtml(node.field)}</code>
+        <span class="operator">${escapeHtml(node.op)}</span>
+        <strong>${escapeHtml(formatConditionValue(node.value))}</strong>
+      </div>`;
+    }
+
     function renderRuleReference() {
       document.getElementById("rulesReferenceRows").innerHTML = RULE_CATALOG
         .slice()
         .sort((a, b) => a.priority - b.priority)
         .map(item => {
           const rule = RULES[item.id];
-          return `<tr>
+          const fields = conditionFields(item.condition);
+          return `<tr class="rule-summary-row">
             <td><strong>${item.priority}</strong></td>
-            <td><div class="food-name">${item.id} · ${escapeHtml(item.name)}</div></td>
+            <td><button class="rule-toggle" type="button" data-rule-toggle="${item.id}" aria-expanded="false" aria-controls="rule-detail-${item.id}">
+              <span><span class="food-name">${item.id} · ${escapeHtml(item.name)}</span><span class="rule-toggle-hint">View condition and fields</span></span>
+              <span class="rule-chevron" aria-hidden="true">⌄</span>
+            </button></td>
             <td><div class="reason-text">${escapeHtml(item.when)}</div></td>
             <td><span class="decision-pill" data-code="${rule.code}">${escapeHtml(rule.label)}</span></td>
             <td><a class="source-link" href="${rule.url}" target="_blank" rel="noreferrer">${escapeHtml(rule.source)} ↗</a></td>
             <td><span class="review-pill">Not clinically reviewed</span></td>
+          </tr>
+          <tr id="rule-detail-${item.id}" class="rule-detail-row hidden">
+            <td colspan="6">
+              <div class="rule-detail-panel">
+                <div class="rule-detail-grid">
+                  <div>
+                    <div class="detail-kicker">Readable IF / THEN logic</div>
+                    <div class="condition-tree">${renderConditionNode(item.condition)}</div>
+                    <div class="then-row"><span class="then-label">THEN</span><span class="decision-pill" data-code="${rule.code}">${escapeHtml(rule.label)} · ${escapeHtml(rule.code)}</span></div>
+                  </div>
+                  <div>
+                    <div class="detail-kicker">Fields this rule reads</div>
+                    <div class="field-list">${fields.map(field => `<span class="field-chip">${escapeHtml(field)}</span>`).join("")}</div>
+                    <div class="detail-kicker">Raw condition_json</div>
+                    <pre class="json-block"><code>${escapeHtml(JSON.stringify(item.condition, null, 2))}</code></pre>
+                  </div>
+                </div>
+              </div>
+            </td>
           </tr>`;
         }).join("");
     }
@@ -1052,6 +1222,14 @@
 
     document.getElementById("decisionFilter").addEventListener("change", event => { decisionFilter = event.target.value; renderDecision(); });
     document.getElementById("backToHistory").addEventListener("click", () => { currentTab = "history"; switchView("patient"); renderCurrentTab(); });
+    document.getElementById("rulesReferenceRows").addEventListener("click", event => {
+      const button = event.target.closest("[data-rule-toggle]");
+      if (!button) return;
+      const detailRow = document.getElementById(`rule-detail-${button.dataset.ruleToggle}`);
+      const expanded = button.getAttribute("aria-expanded") === "true";
+      button.setAttribute("aria-expanded", String(!expanded));
+      detailRow.classList.toggle("hidden", expanded);
+    });
     document.getElementById("resetDemo").addEventListener("click", () => {
       if (!confirm("Reset all browser changes and restore the fictional demo records?")) return;
       state = createInitialState();
