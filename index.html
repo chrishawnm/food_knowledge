@@ -139,6 +139,29 @@
 
     .notice strong { display: block; margin-bottom: 2px; }
 
+    .rules-card { margin-bottom: 18px; overflow: hidden; }
+    .rules-card summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      cursor: pointer;
+      list-style: none;
+      background: linear-gradient(90deg, #f7fbfa, #eef6f5);
+      border-bottom: 1px solid transparent;
+    }
+    .rules-card[open] summary { border-bottom-color: var(--line); }
+    .rules-card summary::-webkit-details-marker { display: none; }
+    .rules-card summary::after { content: "Show"; color: var(--brand-dark); font-size: .82rem; font-weight: 850; }
+    .rules-card[open] summary::after { content: "Hide"; }
+    .rules-title { display: flex; align-items: center; gap: 11px; }
+    .rules-title h2 { margin: 0 0 2px; font-size: 1.2rem; }
+    .rules-title p { margin: 0; color: var(--muted); font-size: .86rem; }
+    .rules-count { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 34px; border-radius: 999px; color: white; background: var(--brand); font-weight: 900; }
+    .rules-body { padding: 18px 22px 22px; }
+    .review-pill { display: inline-flex; border-radius: 999px; padding: 5px 9px; color: var(--warning); background: var(--warning-soft); font-size: .72rem; font-weight: 850; white-space: nowrap; }
+
     .card {
       background: var(--surface);
       border: 1px solid rgba(20, 60, 90, .09);
@@ -368,6 +391,23 @@
       <div><strong>Fictional demo data only</strong>This prototype is not a diagnosis or care plan. All evidence-mapped rules remain marked as not clinically reviewed.</div>
     </div>
 
+    <details class="card rules-card" open>
+      <summary>
+        <div class="rules-title">
+          <span class="rules-count">9</span>
+          <div><h2>Rules Reference</h2><p>All active rules currently used by the food-decision engine, shown separately from patient data.</p></div>
+        </div>
+      </summary>
+      <div class="rules-body">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Priority</th><th>Rule</th><th>When it applies</th><th>Output</th><th>Evidence</th><th>Review status</th></tr></thead>
+            <tbody id="rulesReferenceRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
     <section id="patientView" class="card" aria-label="Patient data">
       <div class="panel-tabs" role="tablist" aria-label="Patient data sections">
         <button class="tab-button" type="button" data-tab="profile" aria-selected="true">1. Profile &amp; diets</button>
@@ -516,6 +556,18 @@
       }
     };
 
+    const RULE_CATALOG = [
+      { id: "R001", priority: 10, name: "Developmental readiness gate", when: "Solids have not started, developmental readiness is not confirmed, or the patient is currently ill." },
+      { id: "R006", priority: 15, name: "Confirmed FPIES trigger exclusion", when: "An active, confirmed FPIES allergy record exists for the food." },
+      { id: "R002", priority: 20, name: "Confirmed active food-allergy exclusion", when: "An active, confirmed allergy record exists for the food." },
+      { id: "R008", priority: 25, name: "High-risk peanut pathway", when: "Peanut is unintroduced and severe eczema or an active egg-allergy pathway is recorded." },
+      { id: "R003", priority: 30, name: "Unresolved reaction referral", when: "A reaction or medical avoidance is recorded and has not been cleared as unrelated." },
+      { id: "R007", priority: 40, name: "Required dietary-constraint filter", when: "The food conflicts with an active household dietary requirement." },
+      { id: "R009", priority: 50, name: "Incomplete profile guard", when: "Food history is unknown, current status needs clarification, or required product certification is unverified." },
+      { id: "R004", priority: 60, name: "Maintain tolerated food in rotation", when: "The food is regularly tolerated and no higher-priority rule matched." },
+      { id: "R005", priority: 70, name: "New-food eligibility", when: "The food is explicitly never introduced and passes all higher-priority filters." }
+    ];
+
     const DIET_OPTIONS = [
       { code: "vegan", label: "Vegan" },
       { code: "vegetarian", label: "Vegetarian" },
@@ -652,6 +704,23 @@
       patientSelect.innerHTML = Object.keys(state.patients).sort().map(id =>
         `<option value="${escapeHtml(id)}" ${id === state.selectedPatientId ? "selected" : ""}>${escapeHtml(id)}</option>`
       ).join("");
+    }
+
+    function renderRuleReference() {
+      document.getElementById("rulesReferenceRows").innerHTML = RULE_CATALOG
+        .slice()
+        .sort((a, b) => a.priority - b.priority)
+        .map(item => {
+          const rule = RULES[item.id];
+          return `<tr>
+            <td><strong>${item.priority}</strong></td>
+            <td><div class="food-name">${item.id} · ${escapeHtml(item.name)}</div></td>
+            <td><div class="reason-text">${escapeHtml(item.when)}</div></td>
+            <td><span class="decision-pill" data-code="${rule.code}">${escapeHtml(rule.label)}</span></td>
+            <td><a class="source-link" href="${rule.url}" target="_blank" rel="noreferrer">${escapeHtml(rule.source)} ↗</a></td>
+            <td><span class="review-pill">Not clinically reviewed</span></td>
+          </tr>`;
+        }).join("");
     }
 
     function renderProfileTab() {
@@ -994,6 +1063,7 @@
       document.getElementById("browserSaveStatus").textContent = "Fictional demo data restored.";
     });
 
+    renderRuleReference();
     renderPatientPicker();
     renderCurrentTab();
   </script>
