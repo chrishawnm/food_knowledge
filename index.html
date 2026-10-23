@@ -1,0 +1,1001 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Food introduction research MVP for reviewing patient data and evidence-linked food decisions.">
+  <title>Food Introduction MVP</title>
+  <style>
+    :root {
+      --ink: #17324d;
+      --muted: #60758a;
+      --line: #d9e3e9;
+      --surface: #ffffff;
+      --surface-soft: #f5f8f8;
+      --canvas: #edf3f2;
+      --brand: #0c7467;
+      --brand-dark: #07594f;
+      --brand-soft: #dff3ed;
+      --navy: #143c5a;
+      --danger: #a33c45;
+      --danger-soft: #fbe9eb;
+      --warning: #9a6314;
+      --warning-soft: #fff2d9;
+      --purple: #664b91;
+      --purple-soft: #f0eafb;
+      --blue: #2d6291;
+      --blue-soft: #e8f1fa;
+      --shadow: 0 14px 36px rgba(20, 60, 90, 0.09);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 0 0, rgba(12, 116, 103, 0.08), transparent 30rem),
+        var(--canvas);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button, select, input[type="checkbox"] { cursor: pointer; }
+    a { color: var(--blue); }
+
+    .app-shell { width: min(1480px, calc(100% - 32px)); margin: 0 auto; }
+
+    .topbar {
+      background: linear-gradient(120deg, var(--navy), #185a6b 62%, var(--brand));
+      color: white;
+      padding: 28px 0 24px;
+      box-shadow: 0 8px 28px rgba(20, 60, 90, 0.18);
+    }
+
+    .title-row,
+    .control-row,
+    .section-heading,
+    .toolbar,
+    .summary-grid {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .title-row { justify-content: space-between; align-items: flex-start; }
+    h1 { font-size: clamp(1.65rem, 3vw, 2.35rem); margin: 0 0 6px; letter-spacing: -0.035em; }
+    .subtitle { margin: 0; color: #d9eef1; max-width: 760px; }
+
+    .prototype-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid rgba(255,255,255,.3);
+      border-radius: 999px;
+      background: rgba(255,255,255,.12);
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .control-row {
+      margin-top: 24px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+
+    .patient-picker { display: flex; align-items: center; gap: 10px; }
+    .patient-picker label { font-weight: 800; }
+
+    .patient-picker select {
+      min-width: 190px;
+      border: 1px solid rgba(255,255,255,.36);
+      border-radius: 10px;
+      color: var(--ink);
+      background: white;
+      padding: 10px 36px 10px 12px;
+      font-weight: 750;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      gap: 5px;
+      padding: 5px;
+      border-radius: 12px;
+      background: rgba(4, 36, 48, .35);
+    }
+
+    .mode-button {
+      border: 0;
+      border-radius: 9px;
+      padding: 10px 18px;
+      color: #dff2f4;
+      background: transparent;
+      font-weight: 800;
+    }
+
+    .mode-button[aria-selected="true"] {
+      color: var(--navy);
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
+    }
+
+    main { padding: 28px 0 54px; }
+
+    .notice {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+      border: 1px solid #efd9a7;
+      border-radius: 12px;
+      color: #68450e;
+      background: #fff8e8;
+    }
+
+    .notice strong { display: block; margin-bottom: 2px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid rgba(20, 60, 90, .09);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 8px;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tab-button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      color: var(--muted);
+      background: transparent;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .tab-button[aria-selected="true"] { color: var(--brand-dark); background: var(--brand-soft); }
+
+    .tab-content { padding: 24px; }
+    .section-heading { justify-content: space-between; margin-bottom: 18px; align-items: flex-start; }
+    .section-heading h2 { margin: 0 0 4px; font-size: 1.35rem; }
+    .section-heading p { margin: 0; color: var(--muted); }
+
+    .save-indicator {
+      color: var(--brand-dark);
+      background: var(--brand-soft);
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: .82rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field label { font-size: .86rem; color: #496176; font-weight: 800; }
+
+    .field input,
+    .field select,
+    .table-control,
+    textarea {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid #cbd8df;
+      border-radius: 9px;
+      padding: 9px 11px;
+      color: var(--ink);
+      background: white;
+      outline: none;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .table-control:focus,
+    textarea:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(12,116,103,.14);
+    }
+
+    .subsection { margin-top: 28px; }
+    .subsection h3 { margin: 0 0 5px; }
+    .subsection > p { margin: 0 0 15px; color: var(--muted); }
+
+    .constraint-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .constraint-card {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface-soft);
+    }
+
+    .constraint-title { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; font-weight: 850; }
+    .constraint-card .mini-grid { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; }
+    .constraint-card[data-active="false"] .mini-grid { opacity: .45; pointer-events: none; }
+
+    .checkbox-label { display: flex; align-items: center; gap: 7px; font-size: .82rem; color: var(--muted); }
+    input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--brand); }
+
+    .toolbar { justify-content: space-between; margin-bottom: 14px; flex-wrap: wrap; }
+    .toolbar input, .toolbar select { max-width: 310px; }
+
+    .primary-button,
+    .secondary-button,
+    .danger-button,
+    .icon-button {
+      border-radius: 9px;
+      padding: 9px 13px;
+      font-weight: 800;
+    }
+
+    .primary-button { border: 1px solid var(--brand); color: white; background: var(--brand); }
+    .primary-button:hover { background: var(--brand-dark); }
+    .secondary-button { border: 1px solid #bfd0d8; color: var(--ink); background: white; }
+    .secondary-button:hover { background: var(--surface-soft); }
+    .danger-button { border: 1px solid #efc6cb; color: var(--danger); background: var(--danger-soft); }
+    .icon-button { border: 0; color: var(--danger); background: transparent; }
+
+    .table-wrap { width: 100%; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 900px; }
+    th, td { padding: 12px 13px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      color: #4b6175;
+      background: #f1f6f6;
+      font-size: .75rem;
+      letter-spacing: .045em;
+      text-transform: uppercase;
+    }
+    tbody tr:last-child td { border-bottom: 0; }
+    tbody tr:hover { background: #fbfdfd; }
+    td .table-control { min-width: 130px; min-height: 38px; padding: 7px 9px; }
+    .food-name { font-weight: 850; }
+    .food-meta { color: var(--muted); font-size: .78rem; margin-top: 2px; }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin: 0 0 18px;
+    }
+
+    .summary-card { padding: 16px; }
+    .summary-card .number { font-size: 1.8rem; line-height: 1; font-weight: 900; margin-bottom: 7px; }
+    .summary-card .label { color: var(--muted); font-size: .83rem; font-weight: 700; }
+
+    .decision-header { padding: 22px 24px; border-bottom: 1px solid var(--line); }
+    .decision-header h2 { margin: 0 0 5px; }
+    .decision-header p { margin: 0; color: var(--muted); }
+    .decision-body { padding: 20px 24px 24px; }
+
+    .decision-pill,
+    .history-pill,
+    .rule-pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: .73rem;
+      line-height: 1.2;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .decision-pill[data-code="ELIGIBLE_NEW"] { color: var(--brand-dark); background: var(--brand-soft); }
+    .decision-pill[data-code="MAINTAIN_IN_ROTATION"] { color: #316c3d; background: #e4f4e6; }
+    .decision-pill[data-code="CLINICIAN_REVIEW"] { color: var(--warning); background: var(--warning-soft); }
+    .decision-pill[data-code="EXCLUDE_MEDICAL"] { color: var(--danger); background: var(--danger-soft); }
+    .decision-pill[data-code="EXCLUDE_DIETARY"] { color: var(--blue); background: var(--blue-soft); }
+    .decision-pill[data-code="WAIT"] { color: #735c31; background: #f3ead8; }
+    .decision-pill[data-code="INCOMPLETE_PROFILE"] { color: var(--purple); background: var(--purple-soft); }
+    .history-pill { color: #50677a; background: #edf2f5; }
+    .rule-pill { color: var(--navy); background: #e6eef3; }
+    .reason-text { min-width: 290px; color: #334d63; font-size: .88rem; }
+    .source-link { font-size: .82rem; font-weight: 750; }
+    .empty-state { padding: 34px; text-align: center; color: var(--muted); }
+    .hidden { display: none !important; }
+
+    .footer-row { display: flex; justify-content: space-between; gap: 14px; margin-top: 18px; color: var(--muted); font-size: .82rem; }
+
+    @media (max-width: 980px) {
+      .form-grid, .constraint-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .title-row { flex-direction: column; }
+    }
+
+    @media (max-width: 650px) {
+      .app-shell { width: min(100% - 20px, 1480px); }
+      .topbar { padding-top: 20px; }
+      .control-row, .patient-picker { align-items: stretch; }
+      .control-row { flex-direction: column; }
+      .patient-picker { flex-direction: column; gap: 6px; }
+      .patient-picker select, .mode-switch { width: 100%; }
+      .mode-button { flex: 1; padding-inline: 10px; }
+      .form-grid, .constraint-grid, .summary-grid { grid-template-columns: 1fr; }
+      .tab-content, .decision-body, .decision-header { padding: 18px 14px; }
+      .section-heading, .footer-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="app-shell">
+      <div class="title-row">
+        <div>
+          <h1>Food Introduction MVP</h1>
+          <p class="subtitle">Capture a patient profile and food history, then review one evidence-linked decision for each of the 20 MVP foods.</p>
+        </div>
+        <div class="prototype-badge">● Research prototype</div>
+      </div>
+
+      <div class="control-row">
+        <div class="patient-picker">
+          <label for="patientSelect">Patient ID</label>
+          <select id="patientSelect" aria-label="Select patient"></select>
+        </div>
+        <div class="mode-switch" role="tablist" aria-label="Application section">
+          <button class="mode-button" type="button" data-view="patient" aria-selected="true">Patient Data</button>
+          <button class="mode-button" type="button" data-view="decision" aria-selected="false">Food Decision</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <div class="notice" role="note">
+      <div aria-hidden="true">⚠</div>
+      <div><strong>Fictional demo data only</strong>This prototype is not a diagnosis or care plan. All evidence-mapped rules remain marked as not clinically reviewed.</div>
+    </div>
+
+    <section id="patientView" class="card" aria-label="Patient data">
+      <div class="panel-tabs" role="tablist" aria-label="Patient data sections">
+        <button class="tab-button" type="button" data-tab="profile" aria-selected="true">1. Profile &amp; diets</button>
+        <button class="tab-button" type="button" data-tab="allergies" aria-selected="false">2. Known allergies</button>
+        <button class="tab-button" type="button" data-tab="history" aria-selected="false">3. Food history (20)</button>
+      </div>
+      <div id="patientTabContent" class="tab-content"></div>
+    </section>
+
+    <section id="decisionView" class="hidden" aria-label="Food decisions">
+      <div id="decisionSummary" class="summary-grid"></div>
+      <div class="card">
+        <div class="decision-header">
+          <div class="section-heading" style="margin:0">
+            <div>
+              <h2>Food decisions for <span id="decisionPatientId"></span></h2>
+              <p>One terminal result per food, evaluated in rule-priority order.</p>
+            </div>
+            <span class="save-indicator">20 foods evaluated</span>
+          </div>
+        </div>
+        <div class="decision-body">
+          <div class="toolbar">
+            <div>
+              <label for="decisionFilter" style="font-weight:800;margin-right:8px">Show</label>
+              <select id="decisionFilter" class="table-control" style="width:230px">
+                <option value="ALL">All decisions</option>
+                <option value="ELIGIBLE_NEW">Eligible new</option>
+                <option value="MAINTAIN_IN_ROTATION">Maintain in rotation</option>
+                <option value="CLINICIAN_REVIEW">Clinician review</option>
+                <option value="EXCLUDE_MEDICAL">Medical exclusion</option>
+                <option value="EXCLUDE_DIETARY">Dietary exclusion</option>
+                <option value="WAIT">Wait</option>
+                <option value="INCOMPLETE_PROFILE">Incomplete profile</option>
+              </select>
+            </div>
+            <button id="backToHistory" class="secondary-button" type="button">Edit food history</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Food</th>
+                  <th>Recorded history</th>
+                  <th>Decision</th>
+                  <th>Rule</th>
+                  <th>Why</th>
+                  <th>Evidence</th>
+                </tr>
+              </thead>
+              <tbody id="decisionRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-row">
+      <span id="browserSaveStatus">Changes save only in this browser.</span>
+      <button id="resetDemo" class="danger-button" type="button">Reset fictional demo data</button>
+    </div>
+  </main>
+
+  <script>
+    "use strict";
+
+    const STORAGE_KEY = "food-allergy-mvp-state-v2";
+
+    const FOODS = [
+      { id: "FOOD_ALMOND", name: "Almond butter", allergenGroup: "tree_nut", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_APPLE", name: "Apple", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_AVOCADO", name: "Avocado", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_BANANA", name: "Banana", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_BEEF", name: "Beef", allergenGroup: "none", diets: ["gluten_free"] },
+      { id: "FOOD_BROCCOLI", name: "Broccoli", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_CASHEW", name: "Cashew butter", allergenGroup: "tree_nut", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_CHICKEN", name: "Chicken", allergenGroup: "none", diets: ["gluten_free"] },
+      { id: "FOOD_EGG", name: "Hen egg", allergenGroup: "egg", diets: ["vegetarian", "gluten_free"] },
+      { id: "FOOD_LENTIL", name: "Lentil", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_OAT", name: "Oat", allergenGroup: "none", diets: ["vegan", "vegetarian", "requires_certified_gluten_free"] },
+      { id: "FOOD_PEANUT", name: "Peanut", allergenGroup: "peanut", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_COW_MILK", name: "Plain whole-milk yogurt", allergenGroup: "milk", diets: ["vegetarian", "gluten_free"] },
+      { id: "FOOD_RICE", name: "Rice", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_SALMON", name: "Salmon", allergenGroup: "fish", diets: ["gluten_free"] },
+      { id: "FOOD_SHRIMP", name: "Shrimp", allergenGroup: "crustacean_shellfish", diets: ["gluten_free"] },
+      { id: "FOOD_SWEET_POTATO", name: "Sweet potato", allergenGroup: "none", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_SESAME", name: "Tahini", allergenGroup: "sesame", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_SOYBEAN", name: "Tofu", allergenGroup: "soybean", diets: ["vegan", "vegetarian", "gluten_free"] },
+      { id: "FOOD_WHEAT", name: "Wheat", allergenGroup: "wheat", diets: ["vegan", "vegetarian"] }
+    ];
+
+    const RULES = {
+      R001: {
+        code: "WAIT",
+        label: "Wait",
+        source: "CDC solid-food readiness guidance",
+        url: "https://www.cdc.gov/infant-toddler-nutrition/foods-and-drinks/when-what-and-how-to-introduce-solid-foods.html"
+      },
+      R002: {
+        code: "EXCLUDE_MEDICAL",
+        label: "Exclude — medical",
+        source: "FDA Food Allergies",
+        url: "https://www.fda.gov/food/nutrition-food-labeling-and-critical-foods/food-allergies"
+      },
+      R003: {
+        code: "CLINICIAN_REVIEW",
+        label: "Clinician review",
+        source: "NIAID food-allergy guidelines",
+        url: "https://www.niaid.nih.gov/diseases-conditions/guidelines-clinicians-and-patients-food-allergy"
+      },
+      R004: {
+        code: "MAINTAIN_IN_ROTATION",
+        label: "Maintain in rotation",
+        source: "AAAAI/ACAAI/CSACI consensus",
+        url: "https://pubmed.ncbi.nlm.nih.gov/33250376/"
+      },
+      R005: {
+        code: "ELIGIBLE_NEW",
+        label: "Eligible new food",
+        source: "AAAAI/ACAAI/CSACI consensus",
+        url: "https://pubmed.ncbi.nlm.nih.gov/33250376/"
+      },
+      R006: {
+        code: "EXCLUDE_MEDICAL",
+        label: "Exclude — medical",
+        source: "International FPIES consensus guideline",
+        url: "https://www.aaaai.org/Aaaai/media/MediaLibrary/PDF%20Documents/Practice%20and%20Parameters/April-2017-Guidelines-FPIES-Diagnosis-Management.pdf"
+      },
+      R007: {
+        code: "EXCLUDE_DIETARY",
+        label: "Exclude — dietary",
+        source: "HL7 FHIR NutritionOrder",
+        url: "https://hl7.org/fhir/nutritionorder.html"
+      },
+      R008: {
+        code: "CLINICIAN_REVIEW",
+        label: "Clinician review",
+        source: "NIAID peanut-prevention addendum",
+        url: "https://pubweb-prod.niaid.nih.gov/sites/default/files/addendum-peanut-allergy-prevention-guidelines.pdf"
+      },
+      R009: {
+        code: "INCOMPLETE_PROFILE",
+        label: "Incomplete profile",
+        source: "HL7 FHIR Questionnaire",
+        url: "https://hl7.org/fhir/questionnaire.html"
+      }
+    };
+
+    const DIET_OPTIONS = [
+      { code: "vegan", label: "Vegan" },
+      { code: "vegetarian", label: "Vegetarian" },
+      { code: "gluten_free", label: "Gluten-free" },
+      { code: "halal", label: "Halal" },
+      { code: "kosher", label: "Kosher" }
+    ];
+
+    const STATUS_OPTIONS = [
+      ["unknown", "Unknown / not answered"],
+      ["never_introduced", "Never introduced"],
+      ["tolerated_regularly", "Tolerated regularly"],
+      ["previously_tolerated_not_recent", "Previously tolerated, not recent"],
+      ["reaction_reported", "Reaction reported"],
+      ["avoided_medical", "Avoided for medical reason"],
+      ["avoided_preference", "Avoided by preference"]
+    ];
+
+    const DEMO_PATIENTS = [
+      {
+        patient_id: "DEMO_P001", date_of_birth: "2026-04-15", gestational_age_weeks: 39,
+        corrected_age_months: null, country_code: "US", solids_started: 1,
+        developmentally_ready: 1, texture_level: "mashed", currently_ill: 0,
+        eczema_severity: "mild", asthma_or_wheeze: 0,
+        allergies: [], reactions: [],
+        constraints: [{ constraint_code: "vegetarian", required_or_preferred: "preferred", certification_required: 0, active: 1 }],
+        statuses: {
+          FOOD_EGG: { status: "tolerated_regularly", last_exposure_date: "2026-10-20", last_tolerated_date: "2026-10-20", frequency_per_week: 2 },
+          FOOD_OAT: { status: "tolerated_regularly", last_exposure_date: "2026-10-21", last_tolerated_date: "2026-10-21", frequency_per_week: 4 },
+          FOOD_PEANUT: { status: "never_introduced", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: 0 },
+          FOOD_SALMON: { status: "avoided_preference", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: 0 }
+        }
+      },
+      {
+        patient_id: "DEMO_P002", date_of_birth: "2026-05-01", gestational_age_weeks: 38,
+        corrected_age_months: null, country_code: "US", solids_started: 1,
+        developmentally_ready: 1, texture_level: "puree", currently_ill: 0,
+        eczema_severity: "severe", asthma_or_wheeze: 0,
+        allergies: [{ food_id: "FOOD_EGG", clinical_status: "active", verification_status: "provisional", mechanism: "ige", clinician_confirmed: 0, notes: "Fictional provisional record from a reported immediate reaction." }],
+        reactions: [{ food_id: "FOOD_EGG", clinician_review_status: "unreviewed" }],
+        constraints: [{ constraint_code: "halal", required_or_preferred: "required", certification_required: 1, active: 1 }],
+        statuses: {
+          FOOD_BANANA: { status: "tolerated_regularly", last_exposure_date: "2026-10-18", last_tolerated_date: "2026-10-18", frequency_per_week: 3 },
+          FOOD_EGG: { status: "reaction_reported", last_exposure_date: "2026-10-10", last_tolerated_date: "", frequency_per_week: 0 },
+          FOOD_PEANUT: { status: "never_introduced", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: 0 }
+        }
+      },
+      {
+        patient_id: "DEMO_P003", date_of_birth: "2026-02-10", gestational_age_weeks: 36,
+        corrected_age_months: 7.9, country_code: "US", solids_started: 1,
+        developmentally_ready: 1, texture_level: "soft_finger_food", currently_ill: 0,
+        eczema_severity: "none", asthma_or_wheeze: 0,
+        allergies: [{ food_id: "FOOD_COW_MILK", clinical_status: "active", verification_status: "confirmed", mechanism: "fpies", clinician_confirmed: 1, notes: "Fictional clinician-confirmed FPIES record." }],
+        reactions: [{ food_id: "FOOD_COW_MILK", clinician_review_status: "confirmed_related" }],
+        constraints: [],
+        statuses: {
+          FOOD_OAT: { status: "tolerated_regularly", last_exposure_date: "2026-10-19", last_tolerated_date: "2026-10-19", frequency_per_week: 4 },
+          FOOD_RICE: { status: "tolerated_regularly", last_exposure_date: "2026-10-18", last_tolerated_date: "2026-10-18", frequency_per_week: 3 },
+          FOOD_COW_MILK: { status: "reaction_reported", last_exposure_date: "2026-09-05", last_tolerated_date: "", frequency_per_week: 0 },
+          FOOD_PEANUT: { status: "never_introduced", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: 0 }
+        }
+      },
+      {
+        patient_id: "DEMO_P004", date_of_birth: "2026-07-15", gestational_age_weeks: 40,
+        corrected_age_months: null, country_code: "US", solids_started: 0,
+        developmentally_ready: 0, texture_level: "none", currently_ill: 0,
+        eczema_severity: "unknown", asthma_or_wheeze: null,
+        allergies: [], reactions: [],
+        constraints: [{ constraint_code: "vegan", required_or_preferred: "required", certification_required: 0, active: 1 }],
+        statuses: {
+          FOOD_BANANA: { status: "never_introduced", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: 0 }
+        }
+      }
+    ];
+
+    const defaultFoodStatus = () => ({ status: "unknown", last_exposure_date: "", last_tolerated_date: "", frequency_per_week: "" });
+
+    function createInitialState() {
+      const patients = {};
+      DEMO_PATIENTS.forEach(source => {
+        const patient = JSON.parse(JSON.stringify(source));
+        FOODS.forEach(food => {
+          patient.statuses[food.id] = { ...defaultFoodStatus(), ...(patient.statuses[food.id] || {}) };
+        });
+        patients[patient.patient_id] = patient;
+      });
+      return { version: 2, selectedPatientId: "DEMO_P001", patients };
+    }
+
+    function loadState() {
+      try {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (stored && stored.version === 2 && stored.patients) return stored;
+      } catch (error) {
+        console.warn("Stored demo state could not be loaded.", error);
+      }
+      return createInitialState();
+    }
+
+    let state = loadState();
+    let currentView = "patient";
+    let currentTab = "profile";
+    let decisionFilter = "ALL";
+
+    const patientSelect = document.getElementById("patientSelect");
+    const patientView = document.getElementById("patientView");
+    const decisionView = document.getElementById("decisionView");
+    const tabContent = document.getElementById("patientTabContent");
+    const decisionRows = document.getElementById("decisionRows");
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function humanize(value) {
+      return String(value || "").replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    }
+
+    function currentPatient() { return state.patients[state.selectedPatientId]; }
+    function foodById(id) { return FOODS.find(food => food.id === id); }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      const status = document.getElementById("browserSaveStatus");
+      status.textContent = `Saved in this browser at ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`;
+    }
+
+    function renderPatientPicker() {
+      patientSelect.innerHTML = Object.keys(state.patients).sort().map(id =>
+        `<option value="${escapeHtml(id)}" ${id === state.selectedPatientId ? "selected" : ""}>${escapeHtml(id)}</option>`
+      ).join("");
+    }
+
+    function renderProfileTab() {
+      const patient = currentPatient();
+      const constraintMap = Object.fromEntries((patient.constraints || []).map(item => [item.constraint_code, item]));
+
+      tabContent.innerHTML = `
+        <div class="section-heading">
+          <div><h2>Profile and readiness</h2><p>Patient-level inputs used by the readiness and referral rules.</p></div>
+          <span class="save-indicator">Auto-saved locally</span>
+        </div>
+        <div class="form-grid">
+          ${fieldInput("Date of birth", "date_of_birth", "date", patient.date_of_birth)}
+          ${fieldInput("Gestational age (weeks)", "gestational_age_weeks", "number", patient.gestational_age_weeks, 'min="20" max="44" step="0.1"')}
+          ${fieldInput("Corrected age (months)", "corrected_age_months", "number", patient.corrected_age_months, 'min="0" step="0.1"')}
+          ${fieldSelect("Solids started", "solids_started", patient.solids_started, [[1,"Yes"],[0,"No"]])}
+          ${fieldSelect("Developmentally ready", "developmentally_ready", patient.developmentally_ready, [[1,"Yes"],[0,"No"],["","Unknown"]])}
+          ${fieldSelect("Currently ill", "currently_ill", patient.currently_ill, [[1,"Yes"],[0,"No"]])}
+          ${fieldSelect("Eczema severity", "eczema_severity", patient.eczema_severity, [["none","None"],["mild","Mild"],["moderate","Moderate"],["severe","Severe"],["unknown","Unknown"]])}
+          ${fieldSelect("Asthma or wheeze", "asthma_or_wheeze", patient.asthma_or_wheeze, [[1,"Yes"],[0,"No"],["","Unknown"]])}
+          ${fieldSelect("Current texture level", "texture_level", patient.texture_level, [["none","None"],["puree","Puree"],["mashed","Mashed"],["soft_finger_food","Soft finger food"],["mixed","Mixed"],["family_food","Family food"],["unknown","Unknown"]])}
+        </div>
+
+        <div class="subsection">
+          <h3>Dietary requirements</h3>
+          <p>Only active, required constraints filter decisions. Halal and kosher requirements return incomplete until product certification is verified.</p>
+          <div class="constraint-grid">
+            ${DIET_OPTIONS.map(option => {
+              const item = constraintMap[option.code] || { constraint_code: option.code, required_or_preferred: "preferred", certification_required: 0, active: 0 };
+              return `
+                <div class="constraint-card" data-active="${Boolean(item.active)}">
+                  <label class="constraint-title">
+                    <input type="checkbox" data-constraint="${option.code}" data-constraint-field="active" ${item.active ? "checked" : ""}>
+                    ${option.label}
+                  </label>
+                  <div class="mini-grid">
+                    <div class="field">
+                      <label>Level</label>
+                      <select class="table-control" data-constraint="${option.code}" data-constraint-field="required_or_preferred">
+                        <option value="preferred" ${item.required_or_preferred === "preferred" ? "selected" : ""}>Preferred</option>
+                        <option value="required" ${item.required_or_preferred === "required" ? "selected" : ""}>Required</option>
+                      </select>
+                    </div>
+                    <label class="checkbox-label"><input type="checkbox" data-constraint="${option.code}" data-constraint-field="certification_required" ${item.certification_required ? "checked" : ""}> Certification</label>
+                  </div>
+                </div>`;
+            }).join("")}
+          </div>
+        </div>`;
+    }
+
+    function fieldInput(label, name, type, value, extra = "") {
+      return `<div class="field"><label for="profile-${name}">${label}</label><input id="profile-${name}" data-profile="${name}" type="${type}" value="${escapeHtml(value ?? "")}" ${extra}></div>`;
+    }
+
+    function fieldSelect(label, name, value, options) {
+      return `<div class="field"><label for="profile-${name}">${label}</label><select id="profile-${name}" data-profile="${name}">${options.map(([optionValue, optionLabel]) => `<option value="${escapeHtml(optionValue)}" ${String(value ?? "") === String(optionValue) ? "selected" : ""}>${optionLabel}</option>`).join("")}</select></div>`;
+    }
+
+    function foodOptions(selected) {
+      return FOODS.map(food => `<option value="${food.id}" ${selected === food.id ? "selected" : ""}>${escapeHtml(food.name)}</option>`).join("");
+    }
+
+    function renderAllergiesTab() {
+      const patient = currentPatient();
+      tabContent.innerHTML = `
+        <div class="section-heading">
+          <div><h2>Known allergies</h2><p>Add caregiver-reported or clinician-entered records without converting suspicion into confirmation.</p></div>
+          <button class="primary-button" id="addAllergy" type="button">+ Add allergy</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Food</th><th>Clinical status</th><th>Verification</th><th>Mechanism</th><th>Clinician confirmed</th><th>Notes</th><th></th></tr></thead>
+            <tbody>
+              ${patient.allergies.length ? patient.allergies.map((allergy, index) => `
+                <tr>
+                  <td><select class="table-control" data-allergy-index="${index}" data-allergy-field="food_id">${foodOptions(allergy.food_id)}</select></td>
+                  <td><select class="table-control" data-allergy-index="${index}" data-allergy-field="clinical_status">
+                    ${selectOptions(allergy.clinical_status, [["active","Active"],["inactive","Inactive"],["resolved","Resolved"]])}
+                  </select></td>
+                  <td><select class="table-control" data-allergy-index="${index}" data-allergy-field="verification_status">
+                    ${selectOptions(allergy.verification_status, [["unconfirmed","Unconfirmed"],["provisional","Provisional"],["differential","Differential"],["confirmed","Confirmed"],["refuted","Refuted"],["entered_in_error","Entered in error"]])}
+                  </select></td>
+                  <td><select class="table-control" data-allergy-index="${index}" data-allergy-field="mechanism">
+                    ${selectOptions(allergy.mechanism, [["ige","IgE"],["non_ige","Non-IgE"],["fpies","FPIES"],["mixed","Mixed"],["unknown","Unknown"]])}
+                  </select></td>
+                  <td><select class="table-control" data-allergy-index="${index}" data-allergy-field="clinician_confirmed">
+                    ${selectOptions(allergy.clinician_confirmed, [[1,"Yes"],[0,"No"]])}
+                  </select></td>
+                  <td><input class="table-control" data-allergy-index="${index}" data-allergy-field="notes" value="${escapeHtml(allergy.notes || "")}" placeholder="Optional context"></td>
+                  <td><button class="icon-button" type="button" data-remove-allergy="${index}" aria-label="Remove allergy">Remove</button></td>
+                </tr>`).join("") : `<tr><td colspan="7"><div class="empty-state">No allergy records have been added for this patient.</div></td></tr>`}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function selectOptions(selected, options) {
+      return options.map(([value, label]) => `<option value="${escapeHtml(value)}" ${String(selected ?? "") === String(value) ? "selected" : ""}>${label}</option>`).join("");
+    }
+
+    function renderHistoryTab() {
+      const patient = currentPatient();
+      tabContent.innerHTML = `
+        <div class="section-heading">
+          <div><h2>Food history</h2><p>Record a status for each food. Unanswered foods remain unknown and return INCOMPLETE_PROFILE.</p></div>
+          <span class="save-indicator">${FOODS.length} MVP foods</span>
+        </div>
+        <div class="toolbar">
+          <input id="foodSearch" class="table-control" type="search" placeholder="Filter foods…" aria-label="Filter foods">
+          <button id="openDecisions" class="primary-button" type="button">Generate food decisions</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Food</th><th>Food status</th><th>Last exposure</th><th>Last tolerated</th><th>Frequency / week</th></tr></thead>
+            <tbody id="foodHistoryRows">
+              ${FOODS.map(food => {
+                const entry = patient.statuses[food.id] || defaultFoodStatus();
+                return `<tr data-food-search="${escapeHtml((food.name + " " + food.allergenGroup).toLowerCase())}">
+                  <td><div class="food-name">${escapeHtml(food.name)}</div><div class="food-meta">${humanize(food.allergenGroup)}</div></td>
+                  <td><select class="table-control" data-food-id="${food.id}" data-food-field="status">${selectOptions(entry.status, STATUS_OPTIONS)}</select></td>
+                  <td><input class="table-control" type="date" data-food-id="${food.id}" data-food-field="last_exposure_date" value="${escapeHtml(entry.last_exposure_date || "")}"></td>
+                  <td><input class="table-control" type="date" data-food-id="${food.id}" data-food-field="last_tolerated_date" value="${escapeHtml(entry.last_tolerated_date || "")}"></td>
+                  <td><input class="table-control" type="number" min="0" step="0.5" data-food-id="${food.id}" data-food-field="frequency_per_week" value="${escapeHtml(entry.frequency_per_week ?? "")}"></td>
+                </tr>`;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    function renderCurrentTab() {
+      document.querySelectorAll(".tab-button").forEach(button => button.setAttribute("aria-selected", String(button.dataset.tab === currentTab)));
+      if (currentTab === "profile") renderProfileTab();
+      if (currentTab === "allergies") renderAllergiesTab();
+      if (currentTab === "history") renderHistoryTab();
+    }
+
+    function requiredConstraints(patient) {
+      return (patient.constraints || []).filter(item => item.active && item.required_or_preferred === "required");
+    }
+
+    function evaluateFood(patient, food) {
+      const history = patient.statuses[food.id] || defaultFoodStatus();
+      const activeAllergies = (patient.allergies || []).filter(allergy => allergy.food_id === food.id && allergy.clinical_status === "active");
+      const confirmed = activeAllergies.find(allergy => allergy.verification_status === "confirmed");
+
+      if (!patient.solids_started || patient.developmentally_ready !== 1 || patient.currently_ill) {
+        return decision("R001", history.status, patient.currently_ill
+          ? "The patient is currently marked ill; introduction decisions should wait."
+          : "Solids have not started or developmental readiness is not confirmed.");
+      }
+
+      if (confirmed && confirmed.mechanism === "fpies") {
+        return decision("R006", history.status, "An active, clinician-confirmed FPIES record is stored for this food.");
+      }
+
+      if (confirmed) {
+        return decision("R002", history.status, "An active, confirmed allergy record is stored for this food.");
+      }
+
+      const eggAllergy = (patient.allergies || []).some(allergy =>
+        allergy.food_id === "FOOD_EGG" && allergy.clinical_status === "active" &&
+        ["provisional", "differential", "confirmed"].includes(allergy.verification_status)
+      );
+      if (food.id === "FOOD_PEANUT" && history.status === "never_introduced" && (patient.eczema_severity === "severe" || eggAllergy)) {
+        return decision("R008", history.status, "Peanut is unintroduced and severe eczema or an active egg-allergy pathway is recorded.");
+      }
+
+      const unresolvedReaction = (patient.reactions || []).some(reaction => reaction.food_id === food.id && reaction.clinician_review_status !== "unrelated");
+      if (["reaction_reported", "avoided_medical"].includes(history.status) || unresolvedReaction) {
+        return decision("R003", history.status, "A reaction or medical avoidance is recorded and has not been cleared as unrelated.");
+      }
+
+      const required = requiredConstraints(patient);
+      const certificationNeeded = required.filter(item => ["halal", "kosher"].includes(item.constraint_code));
+      if (certificationNeeded.length) {
+        return decision("R009", history.status, `${certificationNeeded.map(item => humanize(item.constraint_code)).join(" and ")} certification cannot be verified from a generic food record.`);
+      }
+
+      const conflicts = required.filter(item => ["vegan", "vegetarian", "gluten_free"].includes(item.constraint_code) && !food.diets.includes(item.constraint_code));
+      if (conflicts.length) {
+        return decision("R007", history.status, `This food conflicts with the required ${conflicts.map(item => humanize(item.constraint_code)).join(" and ")} constraint.`);
+      }
+
+      if (history.status === "tolerated_regularly") {
+        return decision("R004", history.status, "The food is reported as regularly tolerated and no higher-priority exclusion matched.");
+      }
+
+      if (history.status === "never_introduced") {
+        return decision("R005", history.status, "The food is explicitly marked never introduced and passed the current readiness, allergy, reaction, and dietary filters.");
+      }
+
+      const incompleteReason = history.status === "unknown"
+        ? "Food history has not been completed for this food."
+        : history.status === "previously_tolerated_not_recent"
+          ? "Current tolerance needs to be updated before classification."
+          : "The current avoidance status needs clarification before classification.";
+      return decision("R009", history.status, incompleteReason);
+    }
+
+    function decision(ruleId, historyStatus, detail) {
+      const rule = RULES[ruleId];
+      return { ruleId, historyStatus, detail, ...rule };
+    }
+
+    function allDecisions() {
+      const patient = currentPatient();
+      return FOODS.map(food => ({ food, result: evaluateFood(patient, food) }));
+    }
+
+    function renderDecision() {
+      const decisions = allDecisions();
+      document.getElementById("decisionPatientId").textContent = state.selectedPatientId;
+
+      const groups = {
+        eligible: decisions.filter(item => item.result.code === "ELIGIBLE_NEW").length,
+        maintain: decisions.filter(item => item.result.code === "MAINTAIN_IN_ROTATION").length,
+        safety: decisions.filter(item => ["CLINICIAN_REVIEW", "EXCLUDE_MEDICAL", "EXCLUDE_DIETARY", "WAIT"].includes(item.result.code)).length,
+        incomplete: decisions.filter(item => item.result.code === "INCOMPLETE_PROFILE").length
+      };
+
+      document.getElementById("decisionSummary").innerHTML = [
+        [groups.eligible, "Eligible new foods", "var(--brand)"],
+        [groups.maintain, "Maintain in rotation", "#3c8149"],
+        [groups.safety, "Wait, exclude, or review", "var(--warning)"],
+        [groups.incomplete, "Incomplete profile", "var(--purple)"]
+      ].map(([number, label, color]) => `<div class="summary-card card"><div class="number" style="color:${color}">${number}</div><div class="label">${label}</div></div>`).join("");
+
+      const filtered = decisionFilter === "ALL" ? decisions : decisions.filter(item => item.result.code === decisionFilter);
+      decisionRows.innerHTML = filtered.length ? filtered.map(({ food, result }) => `
+        <tr>
+          <td><div class="food-name">${escapeHtml(food.name)}</div><div class="food-meta">${humanize(food.allergenGroup)}</div></td>
+          <td><span class="history-pill">${humanize(result.historyStatus)}</span></td>
+          <td><span class="decision-pill" data-code="${result.code}">${escapeHtml(result.label)}</span></td>
+          <td><span class="rule-pill">${result.ruleId}</span></td>
+          <td><div class="reason-text">${escapeHtml(result.detail)}</div></td>
+          <td><a class="source-link" href="${result.url}" target="_blank" rel="noreferrer">${escapeHtml(result.source)} ↗</a></td>
+        </tr>`).join("") : `<tr><td colspan="6"><div class="empty-state">No foods match this decision filter.</div></td></tr>`;
+    }
+
+    function switchView(view) {
+      currentView = view;
+      document.querySelectorAll(".mode-button").forEach(button => button.setAttribute("aria-selected", String(button.dataset.view === view)));
+      patientView.classList.toggle("hidden", view !== "patient");
+      decisionView.classList.toggle("hidden", view !== "decision");
+      if (view === "decision") renderDecision();
+    }
+
+    function ensureConstraint(code) {
+      const patient = currentPatient();
+      let item = patient.constraints.find(constraint => constraint.constraint_code === code);
+      if (!item) {
+        item = { constraint_code: code, required_or_preferred: "preferred", certification_required: 0, active: 0 };
+        patient.constraints.push(item);
+      }
+      return item;
+    }
+
+    function parseProfileValue(field, value) {
+      if (["solids_started", "developmentally_ready", "currently_ill", "asthma_or_wheeze"].includes(field)) return value === "" ? null : Number(value);
+      if (["gestational_age_weeks", "corrected_age_months"].includes(field)) return value === "" ? null : Number(value);
+      return value;
+    }
+
+    document.querySelectorAll(".mode-button").forEach(button => button.addEventListener("click", () => switchView(button.dataset.view)));
+    document.querySelectorAll(".tab-button").forEach(button => button.addEventListener("click", () => { currentTab = button.dataset.tab; renderCurrentTab(); }));
+
+    patientSelect.addEventListener("change", () => {
+      state.selectedPatientId = patientSelect.value;
+      saveState();
+      renderCurrentTab();
+      if (currentView === "decision") renderDecision();
+    });
+
+    tabContent.addEventListener("change", event => {
+      const patient = currentPatient();
+      const target = event.target;
+
+      if (target.dataset.profile) {
+        patient[target.dataset.profile] = parseProfileValue(target.dataset.profile, target.value);
+      }
+
+      if (target.dataset.constraint) {
+        const item = ensureConstraint(target.dataset.constraint);
+        const field = target.dataset.constraintField;
+        item[field] = target.type === "checkbox" ? Number(target.checked) : target.value;
+        if (field === "active") renderProfileTab();
+      }
+
+      if (target.dataset.allergyIndex !== undefined) {
+        const allergy = patient.allergies[Number(target.dataset.allergyIndex)];
+        const field = target.dataset.allergyField;
+        allergy[field] = field === "clinician_confirmed" ? Number(target.value) : target.value;
+        if (field === "verification_status" && target.value === "confirmed") allergy.clinician_confirmed = 1;
+        if (field === "clinician_confirmed" && Number(target.value) === 0 && allergy.verification_status === "confirmed") allergy.verification_status = "provisional";
+        renderAllergiesTab();
+      }
+
+      if (target.dataset.foodId) {
+        const entry = patient.statuses[target.dataset.foodId] || (patient.statuses[target.dataset.foodId] = defaultFoodStatus());
+        const field = target.dataset.foodField;
+        entry[field] = field === "frequency_per_week" ? (target.value === "" ? "" : Number(target.value)) : target.value;
+      }
+
+      saveState();
+    });
+
+    tabContent.addEventListener("click", event => {
+      if (event.target.id === "addAllergy") {
+        currentPatient().allergies.push({ food_id: "FOOD_PEANUT", clinical_status: "active", verification_status: "unconfirmed", mechanism: "unknown", clinician_confirmed: 0, notes: "" });
+        saveState();
+        renderAllergiesTab();
+      }
+      if (event.target.dataset.removeAllergy !== undefined) {
+        currentPatient().allergies.splice(Number(event.target.dataset.removeAllergy), 1);
+        saveState();
+        renderAllergiesTab();
+      }
+      if (event.target.id === "openDecisions") switchView("decision");
+    });
+
+    tabContent.addEventListener("input", event => {
+      if (event.target.id === "foodSearch") {
+        const query = event.target.value.trim().toLowerCase();
+        document.querySelectorAll("#foodHistoryRows tr").forEach(row => row.classList.toggle("hidden", !row.dataset.foodSearch.includes(query)));
+      }
+    });
+
+    document.getElementById("decisionFilter").addEventListener("change", event => { decisionFilter = event.target.value; renderDecision(); });
+    document.getElementById("backToHistory").addEventListener("click", () => { currentTab = "history"; switchView("patient"); renderCurrentTab(); });
+    document.getElementById("resetDemo").addEventListener("click", () => {
+      if (!confirm("Reset all browser changes and restore the fictional demo records?")) return;
+      state = createInitialState();
+      localStorage.removeItem(STORAGE_KEY);
+      renderPatientPicker();
+      switchView("patient");
+      currentTab = "profile";
+      renderCurrentTab();
+      document.getElementById("browserSaveStatus").textContent = "Fictional demo data restored.";
+    });
+
+    renderPatientPicker();
+    renderCurrentTab();
+  </script>
+</body>
+</html>
